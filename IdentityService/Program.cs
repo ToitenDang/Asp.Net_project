@@ -1,0 +1,46 @@
+using AutoMapper;
+using IdentityService.Configurations;
+using IdentityService.Data;
+using IdentityService.Mappers;
+using Microsoft.EntityFrameworkCore;
+using FluentValidation;
+using IdentityService.Exceptions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddAutoMapper(cfg => { }, typeof(MappingProfile));
+builder.Services.AddValidator();
+builder.Services.AddServices();
+//builder.Services.AddValidatorsFromAssemblyContaining<UserRequestValidator>();
+builder.Services.AddJWT(builder.Configuration);
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+app.UseMiddleware<ExceptionHandlerMiddleware>();
+app.UseHttpsRedirection();
+
+app.UseAuthentication();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
