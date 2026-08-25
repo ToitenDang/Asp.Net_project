@@ -7,7 +7,8 @@ namespace IdentityService.Repositories.IRepository
 {
     public interface IRoleRepository : IBaseRepository<RoleEntity>
     {
-        Task<RoleEntity?> RoleNameExisted(string roleName);
+        Task<RoleEntity?> RoleCodeExisted(string roleCode);
+
         Task UpdateRolePermissionsAsync(Guid roleId, List<Guid> permissionIds, Guid? userId);
     }
 }

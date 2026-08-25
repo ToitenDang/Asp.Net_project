@@ -16,7 +16,14 @@ public class RoleConfiguration : IEntityTypeConfiguration<RoleEntity>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(x => x.RoleCode)
+            .HasMaxLength(20)
+            .IsRequired();
+
         builder.HasIndex(x => x.Name)
+            .IsUnique();
+
+        builder.HasIndex(x => x.RoleCode)
             .IsUnique();
 
         builder.Property(x => x.IsActive)

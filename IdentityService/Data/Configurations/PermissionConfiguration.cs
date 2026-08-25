@@ -17,7 +17,14 @@ public class PermissionConfiguration
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(x => x.PermissionCode)
+            .HasMaxLength(20)
+            .IsRequired();
+
         builder.HasIndex(x => x.Name)
+            .IsUnique();
+
+        builder.HasIndex(x => x.PermissionCode)
             .IsUnique();
 
         builder.Property(x => x.IsActive)

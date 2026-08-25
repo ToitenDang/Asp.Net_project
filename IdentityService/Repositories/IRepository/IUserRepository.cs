@@ -16,5 +16,6 @@ namespace IdentityService.Repositories.IRepository
         Task AddUserAsync(UserEntity user);
 
         Task SaveChangesAsync();
+        Task AddUserRoleAsync(UserRoleEntity userRole);
     }
 }

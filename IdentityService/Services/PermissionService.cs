@@ -17,7 +17,8 @@ namespace IdentityService.Services
         private readonly ICurrentUserService _currentUserService;
         private readonly IPermissionRepository _permissionRepository;
 
-        public PermissionService(ICurrentUserService currentUserService, IUnitOfWork unitOfWork, IMapper mapper, IPermissionRepository permissionRepository)
+        public PermissionService(ICurrentUserService currentUserService, IUnitOfWork unitOfWork,
+            IMapper mapper, IPermissionRepository permissionRepository)
         {
             _currentUserService = currentUserService;
             _unitOfWork = unitOfWork;
@@ -30,8 +31,9 @@ namespace IdentityService.Services
             var res = new ResultResponse();
 
             var userId = _currentUserService?.User?.UserId;
+            var permissionCode = request.Name.Trim().ToUpper();
 
-            var permission = await _permissionRepository.PermissionNameExisted(request.Name.Trim().ToUpper());
+            var permission = await _permissionRepository.PermissionCodeExisted(permissionCode);
 
             if (permission != null)
             {
@@ -49,6 +51,7 @@ namespace IdentityService.Services
             {
                 Id = Guid.NewGuid(),
                 Name = request.Name.Trim().ToUpper(),
+                PermissionCode = permissionCode,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = userId
             };
@@ -112,6 +115,17 @@ namespace IdentityService.Services
             var res = new ResultResponse();
 
             var permission = await _permissionRepository.GetByIdAsync(permissionId);
+
+            if (permission == null)
+            {
+                return ResultResponse.Fail("Permission not found!");
+            }
+
+            var isUsed = await _permissionRepository.IsPermissionUsed(permissionId);
+            if (isUsed)
+            {
+                return ResultResponse.Fail("Delete failed because permission is being used!");
+            }
 
             _permissionRepository.Delete(permission);
 

@@ -31,33 +31,36 @@ namespace IdentityService.Services
 
             var userId = _currentUserService?.User?.UserId;
 
-            var role = await _roleRepository.RoleNameExisted(request.Name.Trim().ToUpper());
+            var roleCode = request.Name.Trim().ToUpper();
+
+            var role = await _roleRepository.RoleCodeExisted(roleCode);
 
             if (role != null)
             {
-                if (role.IsDelete)
+                if (!role.IsDelete)
                 {
-                    return ResultResponse.Fail("Permission existed");
+                    return ResultResponse.Fail("Role existed");
                 }
 
-                role.IsDelete = true;
+                role.IsDelete = false;
                 role.CreatedAt = DateTime.UtcNow;
                 role.CreatedBy = userId;
             }
 
-            var newPer = new RoleEntity
+            var newRole = new RoleEntity
             {
                 Id = Guid.NewGuid(),
                 Name = request.Name.Trim().ToUpper(),
+                RoleCode = roleCode,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = userId
             };
 
-            await _roleRepository.AddAsync(newPer);
+            await _roleRepository.AddAsync(newRole);
 
             if (request.PermissionIds != null && request.PermissionIds.Any())
             {
-                await _roleRepository.UpdateRolePermissionsAsync(newPer.Id, request.PermissionIds, userId);
+                await _roleRepository.UpdateRolePermissionsAsync(newRole.Id, request.PermissionIds, userId);
             }
 
             await _unitOfWork.SaveChangesAsync();
@@ -122,7 +125,6 @@ namespace IdentityService.Services
 
             _roleRepository.Update(role);
 
-            // Sync role permissions: delete old, insert new
             await _roleRepository.UpdateRolePermissionsAsync(roleId, request.PermissionIds, userId);
 
             await _unitOfWork.SaveChangesAsync();

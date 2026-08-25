@@ -11,6 +11,7 @@ namespace IdentityService.Mappers
         {
             CreateMap<UserEntity, UserResponse>().ReverseMap();
             CreateMap<PermissionEntity, PermissionResponse>().ReverseMap();
+            CreateMap<RoleEntity, RoleResponse>().ReverseMap();
 
             CreateMap<UserRequest, UserEntity>().ReverseMap();
             //CreateMap<CreateUserDto, User>();

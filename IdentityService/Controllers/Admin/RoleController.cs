@@ -4,7 +4,7 @@ using IdentityService.Services.IService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace IdentityService.Controllers
+namespace IdentityService.Controllers.Admin
 {
     [Route("api/[controller]")]
     [ApiController]
