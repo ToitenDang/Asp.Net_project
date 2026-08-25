@@ -29,6 +29,11 @@ namespace IdentityService.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task AddUserRoleAsync(UserRoleEntity userRole)
+        {
+            await _context.UserRoles.AddAsync(userRole);
+        }
+
         public async Task<List<UserEntity>> GetAllUsers()
         {
             var users = await _context.Users.ToListAsync();

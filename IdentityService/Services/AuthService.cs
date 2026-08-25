@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using FluentValidation;
 using IdentityService.Entities;
+using IdentityService.Enum;
 using IdentityService.Models.Request;
 using IdentityService.Models.Response;
 using IdentityService.Repositories.IRepository;
@@ -20,14 +21,16 @@ namespace IdentityService.Services
         private readonly IMapper _mapper;
         private readonly IValidator<UserRequest> _validator;
         private readonly ITokenRepository _tokenRepository;
+        private readonly IRoleRepository _roleRepository;
         private readonly IUserRepository _userRepository;
 
-        public AuthService(IConfiguration configuration, IMapper mapper, ITokenRepository tokenRepository, IUserRepository userRepository, IValidator<UserRequest> validator)
+        public AuthService(IConfiguration configuration, IMapper mapper, ITokenRepository tokenRepository, IRoleRepository roleRepository, IUserRepository userRepository, IValidator<UserRequest> validator)
         {
             _configuration = configuration;
             _mapper = mapper;
             _validator = validator;
             _tokenRepository = tokenRepository;
+            _roleRepository = roleRepository;
             _userRepository = userRepository;
         }
 
@@ -51,14 +54,27 @@ namespace IdentityService.Services
                 return new ResultResponse(false, "User existed!");
             }
 
+            var role = await _roleRepository.RoleCodeExisted(ERole.USER.ToString());
+
             var user = new UserEntity();
 
             user = _mapper.Map<UserEntity>(request);
-            user.Id = new Guid();
+            user.Id = Guid.NewGuid();
             user.Password = user.Password != null ? hash.HashPassword(user, user.Password) : null;
             user.CreatedAt = DateTime.UtcNow;
 
             await _userRepository.AddUserAsync(user);
+
+            if (role != null)
+            {
+                var userRole = new UserRoleEntity();
+                userRole.Id = Guid.NewGuid();
+                userRole.UserId = user.Id;
+                userRole.RoleId = role.Id;
+                userRole.CreatedAt = DateTime.UtcNow;
+
+                await _userRepository.AddUserRoleAsync(userRole);
+            }
 
             res.Message = "Register user succeed!";
             res.Data = _mapper.Map<UserResponse>(user);

@@ -11,6 +11,18 @@ namespace IdentityService.Repositories
         {
         }
 
+        public async Task<bool> IsPermissionUsed(Guid Id)
+        {
+            var res = await _context.RolePermissions.AnyAsync(x => x.PermissionId == Id);
+            return res;
+        }
+
+        public async Task<PermissionEntity?> PermissionCodeExisted(string code)
+        {
+            var exists = await _context.Permissions.FirstOrDefaultAsync(x => x.PermissionCode == code);
+            return exists;
+        }
+
         public async Task<PermissionEntity?> PermissionNameExisted(string name)
         {
             var exists = await _context.Permissions.FirstOrDefaultAsync(x => x.Name == name);

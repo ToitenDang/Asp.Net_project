@@ -3,6 +3,7 @@
     public class RoleEntity : BaseEntity
     {
         public string Name { get; set; } = string.Empty;
+        public string RoleCode { set; get; } = string.Empty;
         public bool IsActive { get; set; } = true;
 
         public ICollection<UserRoleEntity> UserRoles { get; set; }

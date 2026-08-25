@@ -15,9 +15,9 @@ namespace IdentityService.Repositories
         {
         }
 
-        public async Task<RoleEntity?> RoleNameExisted(string roleName)
+        public async Task<RoleEntity?> RoleCodeExisted(string roleCode)
         {
-            var res = await _context.Roles.FirstOrDefaultAsync(x => x.Name == roleName);
+            var res = await _context.Roles.FirstOrDefaultAsync(x => x.RoleCode == roleCode);
             return res;
         }
 

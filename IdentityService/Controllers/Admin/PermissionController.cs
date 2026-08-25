@@ -4,7 +4,7 @@ using IdentityService.Services.IService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace IdentityService.Controllers
+namespace IdentityService.Controllers.Admin
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -24,7 +24,7 @@ namespace IdentityService.Controllers
             return res;
         }
 
-        [HttpPut("id")]
+        [HttpPut("{id}")]
         public async Task<ActionResult<ResultResponse>> UpdatePermission([FromRoute] Guid Id, [FromBody] PermissionRequest request)
         {
             var res = await _permissionService.UpdatePermission(Id, request);
@@ -38,10 +38,17 @@ namespace IdentityService.Controllers
             return res;
         }
 
-        [HttpGet("id")]
+        [HttpGet("{id}")]
         public async Task<ActionResult<ResultResponse>> GetPermissionById([FromRoute] Guid Id)
         {
             var res = await _permissionService.GetPermissionById(Id);
+            return res;
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<ResultResponse>> DeletePermissionById([FromRoute] Guid Id)
+        {
+            var res = await _permissionService.DeletePermisson(Id);
             return res;
         }
     }
