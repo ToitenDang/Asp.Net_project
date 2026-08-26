@@ -1,6 +1,7 @@
-﻿using IdentityService.Models.Request;
+using IdentityService.Models.Request;
 using IdentityService.Models.Response;
 using IdentityService.Services.IService;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace IdentityService.Controllers.Admin
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "ADMIN")]
     public class PermissionController : ControllerBase
     {
         private readonly IPermissionService _permissionService;
