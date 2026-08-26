@@ -1,9 +1,11 @@
-﻿using FluentValidation;
+using FluentValidation;
+using IdentityService.Configurations.OptionsPatternModels;
 using IdentityService.Repositories;
 using IdentityService.Repositories.IRepository;
 using IdentityService.Services.IService;
 using IdentityService.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -41,6 +43,11 @@ namespace IdentityService.Configurations
             services.AddValidatorsFromAssemblyContaining<UserRequestValidator>();
         }
 
+        public static void AddOptionsPattern(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<DataSeedingSettings>(configuration.GetSection("DataSeeding"));
+        }
+
         public static void AddJWT(this IServiceCollection services, IConfiguration configuration)
         {
             var jwt = configuration.GetSection("Jwt");
@@ -63,6 +70,13 @@ namespace IdentityService.Configurations
                             Encoding.UTF8.GetBytes(jwt["Key"]!))
                     };
                 });
+        }
+
+        public static void AddCustomAuthorization(this IServiceCollection services)
+        {
+            services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider, IdentityService.Authorization.PermissionPolicyProvider>();
+            services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, IdentityService.Authorization.PermissionHandler>();
+            services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomResponseAuthorizationMiddleware>();
         }
     }
 }

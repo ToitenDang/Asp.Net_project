@@ -1,4 +1,4 @@
-﻿using IdentityService.Entities;
+using IdentityService.Entities;
 using IdentityService.Models.Response;
 
 namespace IdentityService.Repositories.IRepository
@@ -14,6 +14,8 @@ namespace IdentityService.Repositories.IRepository
         Task AddAsync(UserEntity user);
 
         Task AddUserAsync(UserEntity user);
+
+        Task<UserEntity?> GetUserWithRolesAndPermissionsAsync(string userName);
 
         Task SaveChangesAsync();
         Task AddUserRoleAsync(UserRoleEntity userRole);

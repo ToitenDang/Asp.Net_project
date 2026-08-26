@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FluentValidation;
 using IdentityService.Entities;
 using IdentityService.Enum;
@@ -18,15 +18,19 @@ namespace IdentityService.Services
     public class AuthService : IAuthService
     {
         private readonly IConfiguration _configuration;
+        private readonly IHttpContextAccessor _httpContext;
+        private readonly IRedisService _redisService;
         private readonly IMapper _mapper;
         private readonly IValidator<UserRequest> _validator;
         private readonly ITokenRepository _tokenRepository;
         private readonly IRoleRepository _roleRepository;
         private readonly IUserRepository _userRepository;
 
-        public AuthService(IConfiguration configuration, IMapper mapper, ITokenRepository tokenRepository, IRoleRepository roleRepository, IUserRepository userRepository, IValidator<UserRequest> validator)
+        public AuthService(IConfiguration configuration, IHttpContextAccessor httpContext, IRedisService redisService, IMapper mapper, ITokenRepository tokenRepository, IRoleRepository roleRepository, IUserRepository userRepository, IValidator<UserRequest> validator)
         {
             _configuration = configuration;
+            _httpContext = httpContext;
+            _redisService = redisService;
             _mapper = mapper;
             _validator = validator;
             _tokenRepository = tokenRepository;
@@ -40,6 +44,7 @@ namespace IdentityService.Services
         {
             var res = new ResultResponse<UserResponse>();
             var hash = new PasswordHasher<UserEntity>();
+            var roleCodeUser = _configuration["AuthorizationSettings:RoleCodeUser"] ?? "USER";
 
             var validationResult = await _validator.ValidateAsync(request);
 
@@ -54,7 +59,7 @@ namespace IdentityService.Services
                 return new ResultResponse(false, "User existed!");
             }
 
-            var role = await _roleRepository.RoleCodeExisted(ERole.USER.ToString());
+            var role = await _roleRepository.RoleCodeExisted(roleCodeUser.ToUpper());
 
             var user = new UserEntity();
 
@@ -89,7 +94,7 @@ namespace IdentityService.Services
             var result = new ResultResponse<TokenResponseDto>();
 
             var hash = new PasswordHasher<UserEntity>();
-            var user = await _userRepository.GetByUserNameAsync(request.UserName);
+            var user = await _userRepository.GetUserWithRolesAndPermissionsAsync(request.UserName);
 
             if (user == null || string.IsNullOrEmpty(user.Password))
             {
@@ -162,12 +167,35 @@ namespace IdentityService.Services
 
         private string GenerateJWTToken(UserEntity user)
         {
-            var claims = new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName),
-            new Claim(ClaimTypes.Name, user.Name)
-        };
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName),
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            if (user.UserRoles != null)
+            {
+                foreach (var userRole in user.UserRoles)
+                {
+                    if (userRole.Role != null)
+                    {
+                        claims.Add(new Claim(ClaimTypes.Role, userRole.Role.Name));
+
+                        if (userRole.Role.RolePermissions != null)
+                        {
+                            foreach (var rolePermission in userRole.Role.RolePermissions)
+                            {
+                                if (rolePermission.Permission != null)
+                                {
+                                    claims.Add(new Claim("permission", rolePermission.Permission.Name));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
@@ -180,6 +208,7 @@ namespace IdentityService.Services
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
+
                 expires: DateTime.UtcNow.AddMinutes(
                     int.Parse(_configuration["Jwt:ExpireMinutes"]!)),
                 signingCredentials: credentials);
@@ -214,6 +243,38 @@ namespace IdentityService.Services
 
         public async Task<ResultResponse> Logout(RefreshTokenRequest request)
         {
+            string prefixKeyBlackistJti = _configuration["RedisServer:PrefixKeyBlackListJti"] ?? "blacklist:jti:";
+            var temp = _httpContext.HttpContext?.User;
+            // 1. Lay jti va exp tu token
+            string jti = temp?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+            var expClaim = temp?.FindFirst("exp")?.Value;
+
+            TimeSpan? timeSpan = null;
+
+            // 2. Parse exp sang long de tinh thoi gian con lai
+            if (long.TryParse(expClaim, out var expUnixTime))
+            {
+                // Chuyen sang UTC time
+                var expirationDateTime = DateTimeOffset.FromUnixTimeSeconds(expUnixTime).UtcDateTime;
+
+                // Tu gio den exp con bao nhieu thoi gian
+                var remainingTime = expirationDateTime - DateTime.UtcNow;
+
+                if (remainingTime > TimeSpan.Zero)
+                {
+                    timeSpan = remainingTime;
+                }
+            }
+
+            // 3. Đẩy jti vào Redis Blacklist với giá trị "revoked" và TTL chính là thời gian còn lại của token
+            if (!string.IsNullOrEmpty(jti))
+            {
+                string redisKey = $"{prefixKeyBlackistJti}{jti}";
+                await _redisService.SetAsync(redisKey, "revoked", expiry: timeSpan);
+            }
+
+            //string experied = _httpContext.HttpContext?.User.FindFirst()
+
             var refreshToken = await _tokenRepository
                 .GetValidRefreshToken(
                     request.UserId,

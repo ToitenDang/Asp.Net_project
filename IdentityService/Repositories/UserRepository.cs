@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using AutoMapper.Internal.Mappers;
 using IdentityService.Data;
 using IdentityService.Entities;
@@ -49,6 +49,16 @@ namespace IdentityService.Repositories
         public async Task<UserEntity?> GetByUserNameAsync(string userName)
         {
             return await _context.Users.FirstOrDefaultAsync(x => x.UserName == userName);
+        }
+
+        public async Task<UserEntity?> GetUserWithRolesAndPermissionsAsync(string userName)
+        {
+            return await _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                        .ThenInclude(r => r.RolePermissions)
+                            .ThenInclude(rp => rp.Permission)
+                .FirstOrDefaultAsync(u => u.UserName == userName);
         }
 
         public async Task SaveChangesAsync()
