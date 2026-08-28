@@ -20,8 +20,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-    ConnectionMultiplexer.Connect(builder.Configuration["RedisServer:Redis"] ?? "localhost:6379, password=idenRedisPass@-@"));
+builder.Services.AddRedis(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(cfg => { }, typeof(MappingProfile));
 builder.Services.AddValidator();

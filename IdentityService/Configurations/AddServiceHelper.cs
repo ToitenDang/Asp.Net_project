@@ -7,6 +7,8 @@ using IdentityService.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
 namespace IdentityService.Configurations
@@ -69,7 +71,54 @@ namespace IdentityService.Configurations
                         IssuerSigningKey = new SymmetricSecurityKey(
                             Encoding.UTF8.GetBytes(jwt["Key"]!))
                     };
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnTokenValidated = async context =>
+                        {
+                            var redisService = context.HttpContext.RequestServices.GetRequiredService<IRedisService>();
+
+                            string prefixBlacklist = configuration["RedisServer:PrefixKeyBlackListJti"] ?? "blacklist:jti:";
+                            var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+
+                            bool existRedisJti = await redisService.ExistsAsync($"{prefixBlacklist}{jti}");
+
+                            if (string.IsNullOrEmpty(jti) || existRedisJti == true)
+                            {
+                                context.Fail("Please log in to continue.");
+                            }
+                        }
+                    };
                 });
+        }
+
+        public static void AddRedis(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddSingleton<IConnectionMultiplexer>(sp =>
+            {
+                var configurationOptions = ConfigurationOptions.Parse(configuration["RedisServer:Redis"] ?? "localhost:6379, password=idenRedisPass@-@");
+
+                // Khong crash app luc khoi dong neu Redis off
+                configurationOptions.AbortOnConnectFail = false;
+
+                // Tu dong connect lai khi sap
+                configurationOptions.ConnectRetry = 5;
+                configurationOptions.ConnectTimeout = 3000;
+
+                var multiplexer = ConnectionMultiplexer.Connect(configurationOptions);
+
+                // Lang nghe cac su kien log de theo doi
+                multiplexer.ConnectionRestored += (sender, e) =>
+                {
+                    Console.WriteLine("Redis connectd!");
+                };
+
+                multiplexer.ConnectionFailed += (sender, e) =>
+                {
+                    Console.WriteLine($"Redis disconnected: {e.FailureType}");
+                };
+
+                return multiplexer;
+            });
         }
 
         public static void AddCustomAuthorization(this IServiceCollection services)

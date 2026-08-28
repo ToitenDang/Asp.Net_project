@@ -8,6 +8,7 @@ using IdentityService.Repositories.IRepository;
 using IdentityService.Services.IService;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -18,6 +19,7 @@ namespace IdentityService.Services
     public class AuthService : IAuthService
     {
         private readonly IConfiguration _configuration;
+        private readonly ILogger<AuthService> _logger;
         private readonly IHttpContextAccessor _httpContext;
         private readonly IRedisService _redisService;
         private readonly IMapper _mapper;
@@ -26,9 +28,10 @@ namespace IdentityService.Services
         private readonly IRoleRepository _roleRepository;
         private readonly IUserRepository _userRepository;
 
-        public AuthService(IConfiguration configuration, IHttpContextAccessor httpContext, IRedisService redisService, IMapper mapper, ITokenRepository tokenRepository, IRoleRepository roleRepository, IUserRepository userRepository, IValidator<UserRequest> validator)
+        public AuthService(IConfiguration configuration, ILogger<AuthService> logger, IHttpContextAccessor httpContext, IRedisService redisService, IMapper mapper, ITokenRepository tokenRepository, IRoleRepository roleRepository, IUserRepository userRepository, IValidator<UserRequest> validator)
         {
             _configuration = configuration;
+            _logger = logger;
             _httpContext = httpContext;
             _redisService = redisService;
             _mapper = mapper;
@@ -243,47 +246,39 @@ namespace IdentityService.Services
 
         public async Task<ResultResponse> Logout(RefreshTokenRequest request)
         {
-            string prefixKeyBlackistJti = _configuration["RedisServer:PrefixKeyBlackListJti"] ?? "blacklist:jti:";
-            var temp = _httpContext.HttpContext?.User;
-            // 1. Lay jti va exp tu token
-            string jti = temp?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-            var expClaim = temp?.FindFirst("exp")?.Value;
-
-            TimeSpan? timeSpan = null;
-
-            // 2. Parse exp sang long de tinh thoi gian con lai
-            if (long.TryParse(expClaim, out var expUnixTime))
-            {
-                // Chuyen sang UTC time
-                var expirationDateTime = DateTimeOffset.FromUnixTimeSeconds(expUnixTime).UtcDateTime;
-
-                // Tu gio den exp con bao nhieu thoi gian
-                var remainingTime = expirationDateTime - DateTime.UtcNow;
-
-                if (remainingTime > TimeSpan.Zero)
-                {
-                    timeSpan = remainingTime;
-                }
-            }
-
-            // 3. Đẩy jti vào Redis Blacklist với giá trị "revoked" và TTL chính là thời gian còn lại của token
-            if (!string.IsNullOrEmpty(jti))
-            {
-                string redisKey = $"{prefixKeyBlackistJti}{jti}";
-                await _redisService.SetAsync(redisKey, "revoked", expiry: timeSpan);
-            }
-
-            //string experied = _httpContext.HttpContext?.User.FindFirst()
-
-            var refreshToken = await _tokenRepository
-                .GetValidRefreshToken(
-                    request.UserId,
-                    request.RefreshToken);
+            // Cập nhật refreshToken revoke trong database
+            var refreshToken = await _tokenRepository.GetValidRefreshToken(request.UserId, request.RefreshToken);
 
             if (refreshToken != null)
             {
                 refreshToken.IsRevoke = true;
                 await _tokenRepository.SaveChangesAsync();
+            }
+
+            try
+            {
+                var userClaims = _httpContext.HttpContext?.User;
+                //  Lay jti va exp tu token
+                string jti = userClaims?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                var expClaim = userClaims?.FindFirst("exp")?.Value;
+
+                if (!string.IsNullOrEmpty(jti) && long.TryParse(expClaim, out var expUnixTime))
+                {
+                    var expirationTime = DateTimeOffset.FromUnixTimeSeconds(expUnixTime).UtcDateTime;
+                    var remainingTime = expirationTime - DateTime.UtcNow;
+
+                    // Chỉ lưu vào redis khi token còn hạn
+                    if (remainingTime > TimeSpan.Zero)
+                    {
+                        string prefixKeyBlackistJti = _configuration["RedisServer:PrefixKeyBlackListJti"] ?? "blacklist:jti:";
+                        string redisKey = $"{prefixKeyBlackistJti}{jti}";
+                        await _redisService.SetAsync(redisKey, "revoked", expiry: remainingTime);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[Logout] Failed to blacklist JTI in Redis. User still logged out from DB.");
             }
 
             return new ResultResponse
