@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using IdentityService.Models.Request;
 using IdentityService.Models.Response;
 using IdentityService.Repositories.IRepository;
 using IdentityService.Services.IService;
@@ -25,6 +26,26 @@ namespace IdentityService.Services
             result.Success = true;
             result.Message = "Get all users successfully";
             result.Data = _mapper.Map<List<UserResponse>>(users);
+
+            return result;
+        }
+
+        public async Task<ResultResponse> UpdateUserInfo(Guid userId, UserUpdateRequest request)
+        {
+            var result = new ResultResponse();
+            var user = await _userRepository.GetByUserIdAsync(userId);
+            if (user == null)
+            {
+                return ResultResponse.Fail("User not found!");
+            }
+
+            user.Name = request.Name.Trim();
+            user.Email = request.Email.Trim();
+            user.IsActive = request.IsActive;
+
+            await _userRepository.SaveChangesAsync();
+
+            result.Message = "Update user succeed!";
 
             return result;
         }

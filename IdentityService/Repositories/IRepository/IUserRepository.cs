@@ -1,4 +1,5 @@
 using IdentityService.Entities;
+using IdentityService.Models.Request;
 using IdentityService.Models.Response;
 
 namespace IdentityService.Repositories.IRepository
@@ -18,6 +19,7 @@ namespace IdentityService.Repositories.IRepository
         Task<UserEntity?> GetUserWithRolesAndPermissionsAsync(string userName);
 
         Task SaveChangesAsync();
+
         Task AddUserRoleAsync(UserRoleEntity userRole);
     }
 }

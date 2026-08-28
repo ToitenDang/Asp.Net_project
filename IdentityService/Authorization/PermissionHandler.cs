@@ -1,6 +1,8 @@
 ﻿using IdentityService.Configurations.OptionsPatternModels;
+using IdentityService.Services.IService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace IdentityService.Authorization
 {
