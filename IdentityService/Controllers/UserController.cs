@@ -29,15 +29,19 @@ namespace IdentityService.Controllers
             return Ok(result);
         }
 
-        //[HttpGet("{id}")]
-        //[Authorize]
-        //public Task<>
+        [HttpGet("{id}")]
+        [Authorize]
+        public async Task<IActionResult> GetUser([FromRoute] Guid id)
+        {
+            var result = await _userService.GetUserById(id);
+            return Ok(result);
+        }
 
         [HttpPut("{id}")]
-        [Authorize]
-        public async Task<IActionResult> UpdateUserInfo([FromQuery] Guid userId, [FromBody] UserUpdateRequest request)
+        [Authorize(Policy = "PERSONAL_UPDATE")]
+        public async Task<IActionResult> UpdateUserInfo([FromRoute] Guid id, [FromBody] UserUpdateRequest request)
         {
-            var result = await _userService.UpdateUserInfo(userId, request);
+            var result = await _userService.UpdateUserInfo(id, request);
             return Ok(result);
         }
     }

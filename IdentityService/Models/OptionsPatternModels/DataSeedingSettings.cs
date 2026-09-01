@@ -1,4 +1,4 @@
-﻿namespace IdentityService.Configurations.OptionsPatternModels
+﻿namespace IdentityService.Models.OptionsPatternModels
 {
     public class DataSeedingSettings
     {

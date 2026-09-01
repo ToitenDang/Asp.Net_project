@@ -7,6 +7,8 @@ namespace IdentityService.Services.IService
     {
         Task<ResultResponse> GetAllUsers();
 
+        Task<ResultResponse> GetUserById(Guid id);
+
         Task<ResultResponse> UpdateUserInfo(Guid userId, UserUpdateRequest request);
     }
 }

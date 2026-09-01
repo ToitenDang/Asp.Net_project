@@ -1,4 +1,4 @@
-﻿using IdentityService.Models;
+﻿using IdentityService.Models.OptionsPatternModels;
 
 namespace IdentityService.Services.IService
 {

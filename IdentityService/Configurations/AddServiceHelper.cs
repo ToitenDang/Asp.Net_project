@@ -1,9 +1,10 @@
 using FluentValidation;
-using IdentityService.Configurations.OptionsPatternModels;
+using IdentityService.Models.OptionsPatternModels;
 using IdentityService.Repositories;
 using IdentityService.Repositories.IRepository;
 using IdentityService.Services.IService;
 using IdentityService.UnitOfWork;
+using IdentityService.Workers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -38,6 +39,9 @@ namespace IdentityService.Configurations
                             .AddClasses(classes => classes.Where(type => type.Name.EndsWith("UnitOfWork")))
                             .AsImplementedInterfaces()
                             .WithScopedLifetime());
+
+            services.AddSingleton<EmailQueue>();
+            services.AddHostedService<EmailWorker>();
         }
 
         public static void AddValidator(this IServiceCollection services)
@@ -48,6 +52,8 @@ namespace IdentityService.Configurations
         public static void AddOptionsPattern(this IServiceCollection services, IConfiguration configuration)
         {
             services.Configure<DataSeedingSettings>(configuration.GetSection("DataSeeding"));
+            // Đảm bảo lệnh này nằm trước builder.Build()
+            services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
         }
 
         public static void AddJWT(this IServiceCollection services, IConfiguration configuration)

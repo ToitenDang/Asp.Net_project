@@ -1,6 +1,6 @@
-﻿using IdentityService.Models;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using IdentityService.Services.IService;
+using IdentityService.Models.OptionsPatternModels;
 
 namespace IdentityService.Services
 {

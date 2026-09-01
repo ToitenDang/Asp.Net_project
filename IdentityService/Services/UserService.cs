@@ -30,6 +30,21 @@ namespace IdentityService.Services
             return result;
         }
 
+        public async Task<ResultResponse> GetUserById(Guid id)
+        {
+            var res = new ResultResponse<UserResponse>();
+
+            var user = await _userRepository.GetByUserIdAsync(id);
+            if (user == null)
+            {
+                return ResultResponse.Fail("User not found!");
+            }
+
+            res.Message = "User by Id";
+            res.Data = _mapper.Map<UserResponse>(user);
+            return res;
+        }
+
         public async Task<ResultResponse> UpdateUserInfo(Guid userId, UserUpdateRequest request)
         {
             var result = new ResultResponse();

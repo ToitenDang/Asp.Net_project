@@ -1,4 +1,4 @@
-﻿namespace IdentityService.Models
+﻿namespace IdentityService.Models.OptionsPatternModels
 {
     public class CurrentUser
     {

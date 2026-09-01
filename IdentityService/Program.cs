@@ -25,6 +25,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(cfg => { }, typeof(MappingProfile));
 builder.Services.AddValidator();
 builder.Services.AddServices();
+builder.Services.AddOptionsPattern(builder.Configuration);
 //builder.Services.AddValidatorsFromAssemblyContaining<UserRequestValidator>();
 builder.Services.AddJWT(builder.Configuration);
 builder.Services.AddCustomAuthorization();

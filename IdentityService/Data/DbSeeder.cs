@@ -1,5 +1,5 @@
-using IdentityService.Configurations.OptionsPatternModels;
 using IdentityService.Entities;
+using IdentityService.Models.OptionsPatternModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;

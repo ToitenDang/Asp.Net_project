@@ -2,11 +2,15 @@ using AutoMapper;
 using FluentValidation;
 using IdentityService.Entities;
 using IdentityService.Enum;
+using IdentityService.Events;
+using IdentityService.Models.OptionsPatternModels;
 using IdentityService.Models.Request;
 using IdentityService.Models.Response;
 using IdentityService.Repositories.IRepository;
 using IdentityService.Services.IService;
+using IdentityService.Workers;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.IdentityModel.Tokens.Jwt;
@@ -22,18 +26,24 @@ namespace IdentityService.Services
         private readonly ILogger<AuthService> _logger;
         private readonly IHttpContextAccessor _httpContext;
         private readonly IRedisService _redisService;
+        private readonly EmailQueue _emailQueue;
         private readonly IMapper _mapper;
         private readonly IValidator<UserRequest> _validator;
         private readonly ITokenRepository _tokenRepository;
         private readonly IRoleRepository _roleRepository;
         private readonly IUserRepository _userRepository;
 
-        public AuthService(IConfiguration configuration, ILogger<AuthService> logger, IHttpContextAccessor httpContext, IRedisService redisService, IMapper mapper, ITokenRepository tokenRepository, IRoleRepository roleRepository, IUserRepository userRepository, IValidator<UserRequest> validator)
+        //private readonly EmailSettings _emailSetting;
+
+        public AuthService(IConfiguration configuration, ILogger<AuthService> logger, IHttpContextAccessor httpContext, IRedisService redisService, EmailQueue emailQueue,
+            IMapper mapper, ITokenRepository tokenRepository, IRoleRepository roleRepository, IUserRepository userRepository,
+            IValidator<UserRequest> validator)
         {
             _configuration = configuration;
             _logger = logger;
             _httpContext = httpContext;
             _redisService = redisService;
+            _emailQueue = emailQueue;
             _mapper = mapper;
             _validator = validator;
             _tokenRepository = tokenRepository;
@@ -86,6 +96,13 @@ namespace IdentityService.Services
 
             res.Message = "Register user succeed!";
             res.Data = _mapper.Map<UserResponse>(user);
+
+            await _emailQueue.QueueEmailAsync(new SendEmailEvent
+            {
+                ToEmail = request.Email,
+                Subject = "Đăng ký tài khoản thành công.",
+                Body = $"<h3>Bạn đã đăng ký thành công vào ứng dụng ....</p>"
+            });
 
             return res;
         }

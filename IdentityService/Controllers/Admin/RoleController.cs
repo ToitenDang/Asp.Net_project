@@ -20,31 +20,31 @@ namespace IdentityService.Controllers.Admin
         }
 
         [HttpPost]
-        public async Task<ActionResult<ResultResponse>> CreatePermission(RoleRequest request)
+        public async Task<IActionResult> CreatePermission(RoleRequest request)
         {
             var res = await _roleService.CreateRole(request);
-            return res;
+            return Ok(res);
         }
 
         [HttpPut("id")]
-        public async Task<ActionResult<ResultResponse>> UpdatePermission([FromRoute] Guid Id, [FromBody] RoleRequest request)
+        public async Task<IActionResult> UpdatePermission([FromRoute] Guid Id, [FromBody] RoleRequest request)
         {
             var res = await _roleService.UpdateRole(Id, request);
             return Ok(res);
         }
 
         [HttpGet]
-        public async Task<ActionResult<ResultResponse>> GetAll()
+        public async Task<IActionResult> GetAll()
         {
             var res = await _roleService.GetAllRoles();
-            return res;
+            return Ok(res);
         }
 
         [HttpGet("id")]
-        public async Task<ActionResult<ResultResponse>> GetRoleById([FromRoute] Guid Id)
+        public async Task<IActionResult> GetRoleById([FromRoute] Guid Id)
         {
             var res = await _roleService.GetById(Id);
-            return res;
+            return Ok(res);
         }
     }
 }

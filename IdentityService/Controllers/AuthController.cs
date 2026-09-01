@@ -20,7 +20,7 @@ namespace IdentityService.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<ResultResponse>> Login([FromBody] AuthenRequest request)
+        public async Task<IActionResult> Login([FromBody] AuthenRequest request)
         {
             var result = await _authService.Authenticate(request);
             return Ok(result);
@@ -28,21 +28,21 @@ namespace IdentityService.Controllers
 
         [HttpPost("logout")]
         [Authorize]
-        public async Task<ActionResult<ResultResponse>> Logout(RefreshTokenRequest request)
+        public async Task<IActionResult> Logout(RefreshTokenRequest request)
         {
             var result = await _authService.Logout(request);
             return Ok(result);
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<ResultResponse>> Register([FromBody] UserRequest request)
+        public async Task<IActionResult> Register([FromBody] UserRequest request)
         {
             var result = await _authService.Registered(request);
             return Ok(result);
         }
 
         [HttpPost("refresh-token")]
-        public async Task<ActionResult<ResultResponse>> RefreshToken([FromBody] RefreshTokenRequest request)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
         {
             var result = await _authService.RefreshTokenAsync(request);
             return Ok(result);
